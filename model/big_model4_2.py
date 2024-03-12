@@ -16,12 +16,16 @@ class CustomShuffle(nn.Module):
         return x
 
 class TranscriptionModel(nn.Module):
-    def __init__(self, window_size, n_hidden=192,n_blocks=2, vocabulary_size=128):
+    def __init__(self, window_size, n_hidden=192,n_blocks=2, vocabulary_size=128,oncpu=False):
         super().__init__()
         
         self.window_size = window_size
         n_maps1 = n_hidden // 2
         n_maps2 = n_hidden * 2
+        self.dtype = torch.bfloat16
+        if oncpu:
+            self.dtype = torch.float32
+        self.oncpu = oncpu
 
         scale1 = 2
         scale2 = 2
@@ -77,9 +81,9 @@ class TranscriptionModel(nn.Module):
     def forward(self, x, targets=None, loss_fn=None,smooth=None):
         x = x*3
         x = torch.fft.rfft(x, dim=1)[:,:(self.window_size//2)].view(dtype=torch.float32)
-        x = x.reshape(x.shape[0],self.window_size).to(dtype=torch.bfloat16)
+        x = x.reshape(x.shape[0],self.window_size).to(dtype=self.dtype)
         x = x.unsqueeze(-2)
-        with autocast(dtype=torch.bfloat16):
+        with autocast(enabled=(not self.oncpu),dtype=self.dtype):
             if self.training:  # self.training
                 x = x + torch.normal(mean=0.0, std=0.0007, size=x.shape).to(
                     x.device

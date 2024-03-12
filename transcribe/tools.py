@@ -4,7 +4,7 @@ import torch
 
 import sys
 
-base_path = 'insert absolute path/RSE-pytorch-scaled'
+base_path = 'insert your absolute path/RSE-pytorch-scaled'
 sys.path.insert(0, base_path)
 from model.big_model4_2 import TranscriptionModel
 
@@ -47,8 +47,14 @@ class FileLoader(data.Dataset):
         return x
 
 def predictAudio(audio_path,window_size,stride=165):
-    model = TranscriptionModel(window_size,240).cuda()
-    model.load_state_dict(torch.load(base_path+'/model/big_model4.2_model.pth'),strict=True)
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+        model = TranscriptionModel(window_size,240)
+    else:
+        device = torch.device('cpu')
+        model = TranscriptionModel(window_size,240,2,128,True)
+    model.load_state_dict(torch.load(base_path+'/model/big_model4.2_model.pth',map_location=device),strict=True)
+    model.to(device)
     model.eval()
     all_notes = []
     b_size = 64
@@ -57,7 +63,7 @@ def predictAudio(audio_path,window_size,stride=165):
         t = tqdm(DataLoader(datas, batch_size=b_size, drop_last=False,num_workers=8,pin_memory=True,prefetch_factor=3), total=datas.__len__()//b_size, desc=f"Processing...")
         for batch in t:
             with torch.no_grad():
-                outputs = model(batch.cuda())
+                outputs = model(batch.to(device))
                 pred = outputs.cpu().detach().numpy()
             for i in range(outputs.shape[0]):
                 all_notes.append(pred[i])

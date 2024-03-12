@@ -1,4 +1,4 @@
-name: rse_pytorch_scaled
+name: rse_transcript
 channels:
   - nvidia
   - pytorch
@@ -77,4 +77,3 @@ dependencies:
       - scipy==1.11.4
       - six==1.16.0
       - tqdm==4.66.2
-prefix: /home/user/.miniconda3/envs/rse_pytorch_scaled
